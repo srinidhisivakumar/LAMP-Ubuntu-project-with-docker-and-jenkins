@@ -1,0 +1,47 @@
+#!groovy
+
+/**
+ * Feature Declarative Pipeline with Shared library.
+ *
+ * 1. Static Analysis and Quality Gate check
+ */
+@Library('sharedlib') _
+
+pipeline {
+    agent any
+    stages {
+        stage('Static Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    runSonarScanner sonarProperties: "sonar-project.properties"
+                    sleep 10
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        // Send email and set the build status as failed
+                        // Set Build Status
+                        currentBuild.result = "FAILED"
+
+                        // Send email to developers and ops team
+                        // Send failure email with Sonarqube link attached
+                        mail to: 'srinidhi.srinidhi544@gmail.com', subject: "Status of pipeline: ${currentBuild.fullDisplayName}", body: "${env.BUILD_URL} has result ${currentBuild.result}"
+
+                        //Set build status as failed with a message
+                        error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                    }
+                }
+            }
+        }
+        stage('build') {
+            steps {
+                script {
+                    sh ('sh ./script.sh') }
+            }
+        }
+    }
+}
