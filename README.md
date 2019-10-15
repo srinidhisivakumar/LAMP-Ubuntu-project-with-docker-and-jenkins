@@ -1,45 +1,130 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+***********Docker image with ubuntu:18.04, apache2, php7.2 and mysql:5.6***********
+-				
+Folder Structure:
+-
+    >cd php_mysql
+    >ls
+     app dockerfile php.yml
+    >cd app
+     index.html name.php
+    >cd dockerfile
+      Dockerfile
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+php.yml
+-
+    version: '3'
+    services:
+      db:
+        image: mysql:5.6
+        environment:
+          - MYSQL_ROOT_PASSWORD=welcome@123
+          - MYSQL_DATABASE=srinidhi
+          - MYSQL_USER=sri
+          - MYSQL_PASSWORD=welcome@123
+        networks:
+          - mynet
+      web:
+        image: apache-php-mysql:1
+        volumes:
+          - ./app:/var/www/html
+        ports:
+          - 9999:80
+        depends_on:
+          - db
+        networks:
+          - mynet
+    networks:
+      mynet:
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
+Dockerfile
+-
+    FROM ubuntu:18.04
+    ENV DEBIAN_FRONTEND=noninteractive
 
----
+    RUN apt-get update && apt-get install -yq --no-install-recommends \
+        apache2 \
+        libapache2-mod-php7.2 \
+        php7.2-mysql \
+        mysql-client \
+        && rm -rf /var/lib/apt/lists/*
 
-## Edit a file
+    CMD apachectl -D FOREGROUND
 
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
+Commands to build and deploy yaml file :
+-
+To Build
+    
+    #docker build -t apache-php-mysql:1 .
 
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
+To Deploy the above image
+    
+    #docker stack deploy -c php.yml php
 
----
 
-## Create a file
+=========================================================================
 
-Next, you’ll add a new file to this repository.
+WebSite Files
+-						
+index.html - FrontEnd
+-
+    <!DOCTYPE html>
+    <html>
+    <body>
+    <form method="post" action="name.php">
+    Username : <input type="text" name="username"><br><br>
+    Password : <input type="password" name="password"><br><br>
+    <input type="submit" value="Submit">
+    </form>
+    </body>
+    </html>
 
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
+name.php - BackEnd 
+-
+    <?php
+     $username = filter_input(INPUT_POST, 'username');
+     $password = filter_input(INPUT_POST, 'password');
+     if (!empty($username)){
+    if (!empty($password)){
+    $host = "php_db";
+    $dbusername = "root";
+    $dbpassword = "welcome@123";
+    $dbname = "srinidhi";
+    // Create connection
+    $conn = new mysqli ($host, $dbusername, $dbpassword, $dbname);
+    if (mysqli_connect_error()){
+    die('Connect Error ('. mysqli_connect_errno() .') '
+    . mysqli_connect_error());
+    }
+    else{
+    $sql = "INSERT INTO phpsql(username, password)
+    values ('$username','$password')";
+    if ($conn->query($sql)){
+    echo "New record is inserted sucessfully";
+    }
+    else{
+    echo "Error: ". $sql ."
+    ". $conn->error;
+    }
+    $conn->close();
+    }
+    }
+    else{
+    echo "Password should not be empty";
+    die();
+    }
+    }
+    else{
+    echo "Username should not be empty";
+    die();
+    }
+    ?>
 
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
-
----
-
-## Clone a repository
-
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
-
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
-
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+MySql Queries - DataBase
+-
+    >docker exec -it <mysql container ID> bash
+    >mysql -u root -p
+    >password:""
+    >Use databases;
+    >CREATE	TABLE phpsql (username VARCHAR(20), password VARCHAR(20));
+    After the first insertion in web browser 
+    >SELECT * FROM phpsql;
